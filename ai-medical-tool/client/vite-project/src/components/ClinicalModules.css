@@ -1,0 +1,405 @@
+/* ════════════════════════════════════════════════════════════════
+   CLINICAL MODULES  ·  Shared component styles
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Card base ──────────────────────────────────────────────────── */
+.cm-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1.5px solid var(--border);
+  padding: 18px;
+  box-shadow: var(--shadow-xs);
+  transition: var(--transition);
+  border-top: 3px solid var(--brand-500);
+  position: relative;
+  overflow: hidden;
+}
+
+.cm-card:hover { box-shadow: var(--shadow-md); }
+
+/* ── Card header ────────────────────────────────────────────────── */
+.cm-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.cm-card-icon {
+  width: 38px; height: 38px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  background: var(--brand-50);
+  color: var(--brand-600);
+  border: 1px solid rgba(108,99,255,0.12);
+}
+
+.cm-card-icon.blue   { background: rgba(59,130,246,0.08); color: #3b82f6; }
+.cm-card-icon.purple { background: var(--brand-50); color: var(--brand-600); }
+
+.cm-card-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 2px;
+}
+
+.cm-card-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+/* ── Skeleton loading ───────────────────────────────────────────── */
+.cm-loading { opacity: 0.7; pointer-events: none; }
+
+.cm-skeleton-title,
+.cm-skeleton-line {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e9edf4 50%, #f1f5f9 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease infinite;
+  border-radius: 6px;
+}
+
+.cm-skeleton-title { height: 18px; width: 60%; margin-bottom: 12px; }
+.cm-skeleton-line  { height: 12px; width: 90%; margin-bottom: 8px; }
+.cm-skeleton-line.short { width: 55%; }
+
+/* ── Diagnosis card specifics ───────────────────────────────────── */
+.cm-diagnosis-card  { border-top-width: 3px; }
+
+.cm-primary-dx {
+  background: var(--brand-50);
+  border: 1px solid rgba(108,99,255,0.14);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.cm-dx-label {
+  font-size: 10px; font-weight: 700;
+  color: var(--brand-600); text-transform: uppercase;
+  letter-spacing: 0.08em; margin-bottom: 4px;
+}
+
+.cm-dx-name { font-size: 18px; font-weight: 900; color: var(--text-primary); letter-spacing: -0.02em; }
+
+.cm-severity-badge {
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px; font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cm-active-badge {
+  margin-left: auto;
+  background: var(--teal-dim);
+  color: var(--teal-600);
+  font-size: 10.5px; font-weight: 800;
+  padding: 3px 10px; border-radius: 20px;
+  border: 1px solid rgba(20,184,166,0.2);
+  white-space: nowrap;
+}
+
+/* Confidence row */
+.cm-conf-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+.cm-conf-label-sm { font-size: 11px; font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.cm-conf-track { flex: 1; height: 5px; background: var(--bg-app); border-radius: 3px; overflow: hidden; }
+.cm-conf-fill { height: 100%; border-radius: 3px; transition: width 1s ease; }
+.cm-conf-pct { font-size: 12px; font-weight: 800; font-family: var(--font-mono); white-space: nowrap; }
+
+/* Section label */
+.cm-section-label {
+  font-size: 10px; font-weight: 700; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+
+/* Differentials */
+.cm-differentials { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+
+.cm-diff-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 12px;
+  font-size: 12.5px; font-weight: 500;
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.cm-diff-pill:hover { border-color: var(--brand-400); background: var(--brand-50); }
+
+.cm-diff-rank {
+  font-size: 9.5px; font-weight: 900;
+  color: var(--brand-600); background: var(--brand-50);
+  padding: 1px 6px; border-radius: 4px;
+  border: 1px solid rgba(108,99,255,0.14);
+}
+
+.cm-expand-btn {
+  background: transparent;
+  color: var(--brand-500);
+  font-size: 11.5px; font-weight: 700;
+  padding: 6px 0; width: 100%; text-align: left;
+}
+
+.cm-expand-btn:hover { color: var(--brand-600); }
+
+.cm-reasoning-box {
+  background: var(--bg-subtle);
+  border-radius: 10px; padding: 12px;
+  border: 1px dashed var(--border);
+  margin-top: 8px;
+}
+
+.cm-reasoning-text { font-size: 12.5px; line-height: 1.65; color: var(--text-secondary); }
+
+/* ── Symptom form ───────────────────────────────────────────────── */
+.cm-field-group { margin-bottom: 12px; }
+
+.cm-field-label {
+  font-size: 10.5px; font-weight: 700; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 5px; display: block;
+}
+
+.cm-select {
+  width: 100%; padding: 8px 12px;
+  border: 1.5px solid var(--border); border-radius: 9px;
+  font-size: 13px; background: var(--bg-input);
+  color: var(--text-primary); outline: none;
+  transition: var(--transition);
+}
+
+.cm-select:focus { border-color: var(--brand-500); box-shadow: var(--shadow-glow); }
+
+.cm-symptom-grid {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: 7px; margin-bottom: 14px;
+}
+
+.cm-symptom-chip {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 10px; border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: #ffffff; font-size: 12px;
+  font-weight: 500; color: var(--text-secondary);
+  cursor: none; transition: var(--transition);
+  user-select: none;
+}
+
+.cm-symptom-chip:hover { border-color: var(--brand-400); }
+
+.cm-symptom-chip.active {
+  background: var(--brand-50);
+  border-color: var(--brand-400);
+  color: var(--brand-700);
+  font-weight: 700;
+}
+
+.cm-chip-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%; background: var(--border);
+  flex-shrink: 0; transition: var(--transition);
+}
+
+.cm-symptom-chip.active .cm-chip-dot { background: var(--brand-500); box-shadow: 0 0 0 2px rgba(108,99,255,0.25); }
+
+.cm-error-msg { font-size: 12px; color: var(--red-500); margin-bottom: 8px; font-weight: 600; }
+
+.cm-submit-btn {
+  width: 100%; padding: 11px 18px;
+  background: var(--gradient-brand);
+  color: white; border-radius: 10px;
+  font-weight: 700; font-size: 13.5px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  box-shadow: var(--shadow-brand);
+  transition: var(--transition);
+}
+
+.cm-submit-btn:hover:not(:disabled) { transform: translateY(-2px); filter: brightness(1.06); }
+.cm-submit-btn:disabled { opacity: 0.6; }
+
+/* ── Triage card ────────────────────────────────────────────────── */
+.cm-triage-level-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+}
+
+.cm-triage-icon { font-size: 28px; }
+
+.cm-triage-level {
+  font-size: 26px; font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.cm-urgency-bar-wrap { margin-bottom: 16px; }
+
+.cm-urgency-track {
+  height: 8px; background: #f1f5f9;
+  border-radius: 4px; overflow: hidden; margin-bottom: 4px;
+}
+
+.cm-urgency-fill {
+  height: 100%; border-radius: 4px;
+  transition: width 1s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.cm-urgency-labels {
+  display: flex; justify-content: space-between;
+  font-size: 9.5px; color: var(--text-faint); font-weight: 600;
+}
+
+.cm-triage-details { display: flex; flex-direction: column; gap: 12px; }
+
+.cm-triage-detail-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  background: rgba(0,0,0,0.02); border-radius: 10px;
+  padding: 10px 12px; border: 1px solid var(--border-light);
+}
+
+.cm-td-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.cm-td-label { font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); margin-bottom: 3px; }
+.cm-td-val { font-size: 12.5px; font-weight: 600; color: var(--text-primary); line-height: 1.45; }
+
+/* ── Report button ──────────────────────────────────────────────── */
+.cm-report-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 20px;
+  background: #ffffff;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  font-size: 13px; font-weight: 700;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-xs);
+  transition: var(--transition);
+}
+
+.cm-report-btn:hover:not(:disabled) {
+  border-color: var(--brand-400);
+  color: var(--brand-600);
+  box-shadow: var(--shadow-sm);
+}
+
+.cm-report-btn.done { background: var(--low-dim); border-color: var(--low); color: var(--low); }
+.cm-report-btn:disabled { opacity: 0.5; }
+.cm-report-btn.sm { padding: 7px 14px; font-size: 12px; }
+
+/* ── Spinner ────────────────────────────────────────────────────── */
+.cm-spin {
+  display: inline-block;
+  width: 13px; height: 13px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ── Comparison card ────────────────────────────────────────────── */
+.cm-compare-grid {
+  display: grid; grid-template-columns: 1fr 24px 1fr;
+  gap: 8px; align-items: center; margin-bottom: 14px;
+}
+
+.cm-compare-arrow {
+  text-align: center; font-size: 20px;
+  color: var(--text-faint); font-weight: 700;
+}
+
+.cm-scan-mini {
+  background: var(--bg-subtle);
+  border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 12px;
+}
+
+.cm-scan-mini-label { font-size: 9.5px; font-weight: 800; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 4px; }
+.cm-scan-mini-disease { font-size: 14px; font-weight: 800; color: var(--text-primary); margin-bottom: 6px; }
+.cm-scan-mini-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.cm-conf-sm { font-size: 11px; font-weight: 700; color: var(--text-muted); font-family: var(--font-mono); }
+.cm-scan-mini-date { font-size: 10px; color: var(--text-faint); }
+
+.pred-pill { display: inline-block; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 10px; }
+.pred-pill.abnormal { background: var(--red-dim); color: var(--red-500); }
+.pred-pill.normal   { background: var(--teal-dim); color: var(--teal-600); }
+
+.cm-delta-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+.cm-delta-item {
+  background: var(--bg-subtle); border-radius: 8px;
+  padding: 10px; border: 1px solid var(--border); text-align: center;
+}
+
+.cm-delta-label { font-size: 9px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+.cm-delta-val { font-size: 14px; font-weight: 900; color: var(--text-primary); }
+
+.cm-empty-compare { text-align: center; padding: 20px; color: var(--text-muted); display: flex; flex-direction: column; gap: 8px; align-items: center; font-size: 13px; }
+.cm-status-badge { margin-left: auto; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; white-space: nowrap; flex-shrink: 0; }
+.cm-error { color: var(--red-500); font-size: 13px; }
+
+/* ── AI Reasoning panel ─────────────────────────────────────────── */
+.cm-reason-box {
+  background: var(--brand-50); border: 1px solid rgba(108,99,255,0.14);
+  border-radius: 10px; padding: 12px;
+  font-size: 12.5px; line-height: 1.65; color: var(--text-secondary);
+}
+
+.cm-feature-list { display: flex; flex-direction: column; gap: 8px; }
+
+.cm-feature-item {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 12.5px; color: var(--text-secondary); font-weight: 500;
+}
+
+.cm-feat-num {
+  width: 22px; height: 22px;
+  background: var(--gradient-brand);
+  color: white; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 900; flex-shrink: 0;
+}
+
+.cm-model-chip {
+  margin-left: auto; padding: 3px 10px;
+  font-size: 9.5px; font-weight: 800;
+  background: var(--bg-app); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text-muted);
+  font-family: var(--font-mono); white-space: nowrap;
+}
+
+/* .cm-heatmap-legend — layout provided by child elements */
+
+.cm-legend-bar {
+  height: 8px; border-radius: 4px;
+  background: linear-gradient(to right, #1e3a8a, #6366f1, #f59e0b, #ef4444);
+  margin-bottom: 4px;
+}
+
+.cm-legend-labels {
+  display: flex; justify-content: space-between;
+  font-size: 9.5px; color: var(--text-faint); font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.cm-legend-note { font-size: 11.5px; color: var(--text-muted); line-height: 1.55; }
+
+.cm-meta-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+.cm-meta-item {
+  background: var(--bg-subtle); border-radius: 8px;
+  padding: 8px 10px; border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 2px;
+}
+
+.cm-meta-lbl { font-size: 9px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+.cm-meta-val { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }

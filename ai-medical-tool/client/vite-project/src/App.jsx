@@ -2,7 +2,17 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import UploadZone from "./UploadZone";
 import ResultCard from "./ResultCard";
 import Dashboard from "./Dashboard";
+import SiteEffects from "./Effects";
 import { getHealth, getCases, uploadScan } from "./api";
+import ModelPerformanceCard     from './components/settings/ModelPerformanceCard';
+import SupportedDiseasesCard    from './components/settings/SupportedDiseasesCard';
+import ConfidenceThresholdSlider from './components/settings/ConfidenceThresholdSlider';
+import TriageAlertSettings      from './components/settings/TriageAlertSettings';
+import ReportSettingsCard       from './components/settings/ReportSettingsCard';
+import SystemLogsPanel          from './components/settings/SystemLogsPanel';
+import APIHealthCard            from './components/settings/APIHealthCard';
+import ModelInfoCard            from './components/settings/ModelInfoCard';
+import StorageUsageCard         from './components/settings/StorageUsageCard';
 import "./App.css";
 
 const NAV_ITEMS = [
@@ -318,31 +328,98 @@ function HistoryPage({ onViewCase }) {
   );
 }
 
+
 function SettingsPage({ aiHealth, onRefreshHealth }) {
+  const [tab, setTab] = useState('system');
+
+  const uptimeFmt = aiHealth.uptime
+    ? `${Math.floor(aiHealth.uptime / 3600)}h ${Math.floor((aiHealth.uptime % 3600) / 60)}m`
+    : 'N/A';
+
+  const TABS = [
+    { id: 'system',  label: 'System' },
+    { id: 'metrics', label: 'Metrics' },
+    { id: 'config',  label: 'Config' },
+    { id: 'logs',    label: 'Logs' },
+  ];
+
   return (
     <div className="settings-page animate-fade-in">
-      <div className="page-header">
-        <div><h2 className="page-title">Technical Diagnostics</h2><p className="page-desc">Model performance and service connectivity status</p></div>
+      {/* Compact header */}
+      <div className="sp-header">
+        <div>
+          <h2 className="page-title">Settings</h2>
+          <p className="page-desc">System diagnostics &amp; clinical configuration</p>
+        </div>
+        <button className="btn-secondary sm" onClick={onRefreshHealth}>↻ Refresh</button>
       </div>
-      <div className="diag-grid">
-        <div className="diag-card">
-          <div className="diag-lbl">Backend Infrastructure</div>
-          <div className={`diag-val ${aiHealth.backend ? 'ok' : 'err'}`}>{aiHealth.backend ? 'Online' : 'Offline'}</div>
+
+      {/* Quick status strip */}
+      <div className="sp-status-strip">
+        <div className={`sp-status-pill ${aiHealth.backend ? 'ok' : 'err'}`}>
+          <span className="sp-pill-dot" /> Backend {aiHealth.backend ? 'Online' : 'Offline'}
         </div>
-        <div className="diag-card">
-          <div className="diag-lbl">AI Model Service</div>
-          <div className={`diag-val ${aiHealth.ai === 'online' ? 'ok' : 'err'}`}>{aiHealth.ai === 'online' ? 'Connected' : 'Disconnected'}</div>
+        <div className={`sp-status-pill ${aiHealth.ai === 'online' ? 'ok' : 'err'}`}>
+          <span className="sp-pill-dot" /> AI {aiHealth.ai === 'online' ? 'Connected' : 'Offline'}
         </div>
-        <div className="diag-card">
-          <div className="diag-lbl">TXV Model Version</div>
-          <div className="diag-val">{aiHealth.model || 'densenet121-txv'}</div>
+        <div className="sp-status-pill ok">
+          <span className="sp-pill-dot" /> {aiHealth.model || 'DenseNet-121'}
         </div>
-        <div className="diag-card">
-          <div className="diag-lbl">System Uptime</div>
-          <div className="diag-val">{aiHealth.uptime ? `${Math.floor(aiHealth.uptime/3600)}h ${Math.floor((aiHealth.uptime%3600)/60)}m` : 'N/A'}</div>
-        </div>
+        {aiHealth.uptime > 0 && (
+          <div className="sp-status-pill ok">
+            <span className="sc-uptime-dot" /> {uptimeFmt}
+          </div>
+        )}
+        <button className="sp-conn-btn" onClick={onRefreshHealth}>Run Connectivity Test</button>
       </div>
-      <button className="btn-secondary" style={{ marginTop: '20px' }} onClick={onRefreshHealth}>Run Connectivity Test</button>
+
+      {/* Tab bar */}
+      <div className="sp-tabs">
+        {TABS.map(t => (
+          <button key={t.id} className={`sp-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab: System */}
+      {tab === 'system' && (
+        <div className="sp-tab-content">
+          <div className="settings-grid-2">
+            <APIHealthCard aiHealth={aiHealth} />
+            <StorageUsageCard />
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Metrics */}
+      {tab === 'metrics' && (
+        <div className="sp-tab-content">
+          <ModelPerformanceCard />
+          <div className="settings-grid-2" style={{ marginTop: 14 }}>
+            <ModelInfoCard />
+            <SupportedDiseasesCard />
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Config */}
+      {tab === 'config' && (
+        <div className="sp-tab-content">
+          <div className="settings-grid-3">
+            <ConfidenceThresholdSlider />
+            <TriageAlertSettings />
+            <ReportSettingsCard />
+          </div>
+        </div>
+      )}
+
+      {/* Tab: Logs */}
+      {tab === 'logs' && (
+        <div className="sp-tab-content">
+          <SystemLogsPanel />
+        </div>
+      )}
     </div>
   );
 }
@@ -471,6 +548,7 @@ function App() {
 
   return (
     <div className="app-shell stretch-design">
+      <SiteEffects />
       {/* Sidebar Navigation */}
       <aside className={`app-sidebar ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
         <div className="sidebar-brand">
