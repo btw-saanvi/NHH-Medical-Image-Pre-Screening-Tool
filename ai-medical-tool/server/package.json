@@ -4,16 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "dev": "nodemon index.js"
-
+    "dev": "nodemon index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "axios": "^1.14.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "form-data": "^4.0.5",
     "multer": "^2.1.1"
   },
   "devDependencies": {
