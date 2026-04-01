@@ -1,5 +1,5 @@
 /**
- * api.js — Central API service layer for MedAI frontend.
+ * api.js — Central API service layer for Radio-Matic frontend.
  * All backend calls go through here so components stay clean.
  */
 import axios from "axios";

@@ -20,6 +20,7 @@ const CaseSchema = new mongoose.Schema(
     confidence:      { type: Number, required: true },   // 0-100 integer
     priority:        { type: String, enum: ["Critical", "High", "Medium", "Low"], required: true },
     findings:        [{ type: String }],
+    diagnosis:       { type: String, default: "" },
     recommendation:  { type: String, default: "" },
     allPathologies:  { type: Map, of: Number, default: {} },  // { "Pneumonia": 0.94, ... }
     findingLabels:   [{ type: String }],                       // raw NIH multi-label array

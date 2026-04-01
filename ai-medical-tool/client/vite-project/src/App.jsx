@@ -191,7 +191,7 @@ function LandingPage({ onStart }) {
       {/* CTA Section */}
       <section className="cta-banner">
         <h2>Ready to transform clinical efficiency?</h2>
-        <p>Join healthcare institutions using MedAI to augment diagnostic precision.</p>
+        <p>Join healthcare institutions using Radio-Matic to augment diagnostic precision.</p>
         <div className="cta-actions">
            <button className="btn-white" onClick={() => onStart('analyze')}>Get Started Now</button>
            <button className="btn-outline-white">Contact Sales</button>
@@ -204,7 +204,7 @@ function LandingPage({ onStart }) {
           <div className="f-col"><h4>Resources</h4><p>Documentation</p><p>API Docs</p></div>
           <div className="f-col"><h4>Company</h4><p>About Us</p><p>Compliance</p></div>
         </div>
-        <div className="f-bottom">© 2026 MedAI Technologies. All clinical results require radiologist validation.</div>
+        <div className="f-bottom">© 2026 Radio-Matic Technologies. All clinical results require radiologist validation.</div>
       </footer>
     </div>
   );
@@ -246,7 +246,7 @@ function HistoryPage({ onViewCase }) {
     ).join('\n');
     const blob = new Blob([header + rows], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'medai-history.csv'; a.click();
+    const a = document.createElement('a'); a.href = url; a.download = 'radio-matic-history.csv'; a.click();
   };
 
   return (
@@ -402,7 +402,7 @@ function App() {
         database: data.database || 'disconnected',
       });
       if (firstConnectRef.current) {
-        addToast("System Ready", `MedAI server online · DB: ${data.database}`);
+        addToast("System Ready", `Radio-Matic server online · DB: ${data.database}`);
         firstConnectRef.current = false;
       }
     } catch {
@@ -475,7 +475,7 @@ function App() {
       <aside className={`app-sidebar ${sidebarOpen ? 'expanded' : 'collapsed'}`}>
         <div className="sidebar-brand">
           <div className="brand-logo">M</div>
-          <span className="brand-name">MedAI</span>
+          <span className="brand-name">Radio-Matic</span>
         </div>
         <nav className="sidebar-nav">
           {NAV_ITEMS.map(item => (

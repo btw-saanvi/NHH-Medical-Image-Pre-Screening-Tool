@@ -147,7 +147,7 @@ function buildRecord(index) {
 
 // ── Main ───────────────────────────────────────────────────────────────────────
 async function seed() {
-  await mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/medai");
+  await mongoose.connect(process.env.MONGO_URI || "mongodb://localhost:27017/radio-matic");
   console.log("✅ Connected to MongoDB");
 
   // Remove only seeded records (preserve real uploads)

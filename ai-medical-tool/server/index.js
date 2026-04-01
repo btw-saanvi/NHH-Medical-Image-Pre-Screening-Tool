@@ -19,7 +19,7 @@ const PORT           = process.env.PORT || 5000;
 
 // ── MongoDB connection ────────────────────────────────────────────────────────
 mongoose
-  .connect(process.env.MONGO_URI || "mongodb://localhost:27017/medai")
+  .connect(process.env.MONGO_URI || "mongodb+srv://nidhind544_db_user:nidhi123@radio-metric.h6imrvg.mongodb.net/")
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err.message));
 
@@ -115,6 +115,7 @@ app.post("/upload", upload.single("image"), async (req, res) => {
       confidence:     confidencePct,
       priority,
       findings:       result.findings || [],
+      diagnosis:      result.diagnosis || "",
       recommendation: result.recommendation || "",
       allPathologies: result.all_pathologies || {},
       findingLabels:  [disease],
@@ -139,6 +140,7 @@ app.post("/upload", upload.single("image"), async (req, res) => {
       confidence:      newCase.confidence,
       priority:        newCase.priority,
       findings:        newCase.findings,
+      diagnosis:       newCase.diagnosis,
       recommendation:  newCase.recommendation,
       all_pathologies: Object.fromEntries(newCase.allPathologies),
       heatmap:         newCase.heatmap,
@@ -347,6 +349,7 @@ function formatCase(doc, full = false) {
     confidence:    doc.confidence,
     priority:      doc.priority,
     findings:      doc.findings,
+    diagnosis:     doc.diagnosis,
     recommendation: doc.recommendation,
     findingLabels: doc.findingLabels,
     scanType:      doc.scanType,
@@ -369,7 +372,7 @@ function formatCase(doc, full = false) {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`🏥 MedAI Backend running on http://localhost:${PORT}`);
+  console.log(`🏥 Radio-Matic Backend running on http://localhost:${PORT}`);
   console.log(`📡 AI Service: ${AI_SERVICE_URL}`);
-  console.log(`🗄  MongoDB: ${process.env.MONGO_URI || "mongodb://localhost:27017/medai"}`);
+  console.log(`🗄  MongoDB: ${process.env.MONGO_URI || "mongodb://localhost:27017/radio-matic"}`);
 });

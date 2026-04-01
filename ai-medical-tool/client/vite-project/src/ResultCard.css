@@ -410,3 +410,136 @@
 }
 
 .clinical-disclaimer strong { color: var(--text-primary); font-weight: 700; }
+
+/* ── AI Diagnosis Card ───────────────────────────────────────── */
+.diagnosis-card {
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  background: linear-gradient(135deg, #ffffff, #f0fdf4);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.diagnosis-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; width: 4px; height: 100%;
+  background: var(--accent-green);
+}
+
+.card-header-with-icon {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.badge-ai-model {
+  font-size: 9px;
+  font-weight: 800;
+  background: var(--accent-blue-dim);
+  color: var(--accent-blue);
+  padding: 3px 8px;
+  border-radius: 4px;
+  letter-spacing: 0.05em;
+}
+
+.diagnosis-box {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 4px 2px;
+}
+
+.diag-icon-accent {
+  width: 44px;
+  height: 44px;
+  background: var(--accent-green-dim);
+  color: var(--accent-green);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.diagnosis-text {
+  font-size: 15px;
+  line-height: 1.6;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+/* Findings List */
+.findings-list-card {
+  background: #fff;
+}
+
+.bullet-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-blue);
+  margin-top: 8px;
+  flex-shrink: 0;
+}
+
+.findings-bullet-list li {
+  display: flex;
+  gap: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Differential Analysis */
+.differential-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 15px;
+  font-weight: 500;
+}
+
+.p-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.p-fill.high { background: var(--critical); }
+.p-fill.medium { background: var(--high); }
+.p-fill.low { background: var(--accent-blue); }
+
+/* Priority Tags */
+.prio-tag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.prio-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  box-shadow: 0 0 0 4px rgba(203, 213, 225, 0.2);
+}
+
+.prio-dot.critical { background: var(--critical); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); }
+.prio-dot.high { background: var(--high); box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2); }
+.prio-dot.medium { background: var(--medium); box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.2); }
+.prio-dot.low { background: var(--low); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2); }
+
+.rec-icon-shield {
+  width: 28px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}

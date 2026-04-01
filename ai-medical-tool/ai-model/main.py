@@ -1,5 +1,5 @@
 """
-MedAI - AI Medical Image Pre-Screening Service
+Radio-Matic - AI Medical Image Pre-Screening Service
 Uses TorchXRayVision pre-trained model for real chest X-ray analysis
 + Grad-CAM for explainable AI heatmaps
 """
@@ -27,10 +27,10 @@ except ImportError:
     logging.warning("grad-cam not installed – heatmaps will be disabled")
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("MedAI")
+logger = logging.getLogger("Radio-Matic")
 
 app = FastAPI(
-    title="MedAI - Medical Image Analysis API",
+    title="Radio-Matic - Medical Image Analysis API",
     description="AI-powered chest X-ray analysis using TorchXRayVision",
     version="1.0.0"
 )
@@ -190,76 +190,136 @@ def get_findings(disease: str, confidence: float) -> list[str]:
     """Return realistic clinical findings for each condition."""
     findings_map = {
         "Pneumonia": [
-            "Increased opacity in lower lobe",
-            "Possible consolidation pattern",
-            "Air-space disease noted"
+            "Increased opacity in lower lobe with ill-defined borders",
+            "Possible air bronchograms suggesting alveolar consolidation",
+            "Silhouette sign present, localized to right middle lobe or left lingula",
+            "Absence of significant volume loss, differentiating from atelectasis",
+            "Possible associated pleural thickening in adjacent regions"
         ],
         "Pleural Effusion": [
-            "Blunting of costophrenic angle",
-            "Homogeneous opacity at lung base",
-            "Possible mediastinal shift"
+            "Blunting of costophrenic and costovertebral angles",
+            "Homogeneous opacity at lung base with meniscus sign",
+            "Potential mediastinal shift away from the effusion if large",
+            "Decreased lung volume on the ipsilateral side",
+            "Tracking of fluid along the fissures may be visible"
         ],
         "Effusion": [
-            "Fluid accumulation detected in pleural space",
-            "Blunted costophrenic angle",
-            "Increased basal density"
+            "Fluid accumulation detected in pleural space (meniscus sign)",
+            "Blunted costophrenic angle suggesting >200ml fluid (upright view)",
+            "Increased basal density with loss of diaphragmatic silhouette",
+            "Possible cardiomegaly as a contributing cardiac factor",
+            "Homogeneous opacity obscuring the underlying lung parenchyma"
         ],
         "Cardiomegaly": [
-            "Cardiothoracic ratio > 0.5",
-            "Enlarged cardiac silhouette",
-            "Pulmonary vascular congestion noted"
+            "Cardiothoracic ratio > 0.5 detected on PA view",
+            "Enlarged cardiac silhouette with lateral displacement of apex",
+            "Possible prominence of the pulmonary venous vasculature",
+            "Left ventricular enlargement suggested by downward displacement",
+            "Absence of acute pulmonary edema currently noted"
         ],
         "Atelectasis": [
-            "Linear opacities consistent with atelectasis",
-            "Volume loss in affected lobe",
-            "Possible displacement of fissures"
+            "Linear/discoid opacities consistent with subsegmental atelectasis",
+            "Volume loss in affected lobe with compensatory hyperinflation",
+            "Possible displacement of fissures toward the area of opacity",
+            "Elevation of the ipsilateral diaphragm suggesting basilar collapse",
+            "Crowding of pulmonary vessels in the collapsed region"
         ],
         "Pneumothorax": [
-            "Visible pleural line without lung markings",
-            "Possible partial lung collapse",
-            "Urgent decompression may be required"
+            "Visible visceral pleural line without peripheral lung markings",
+            "Hyper-lucent hemithorax with possible peripheral air collection",
+            "Absence of vascular markings between chest wall and lung edge",
+            "Potential deepening of the costophrenic angle (sulcus sign)",
+            "Urgent: Check for tension signs (mediastinal shift)"
         ],
         "Edema": [
-            "Bilateral perihilar opacities",
-            "Cephalization of pulmonary vessels",
-            "Possible Kerley B lines"
+            "Bilateral perihilar opacities in 'bat-wing' distribution",
+            "Cephalization of pulmonary vessels (Stage I congestion)",
+            "Septal lines (Kerley B lines) noted at the periphery",
+            "Peribronchial cuffing and haziness of the hila",
+            "Possible pleural effusions or cardiomegaly associated"
         ],
         "Nodule": [
-            "Rounded opacity < 3cm detected",
-            "Further characterization recommended",
-            "Low-dose CT follow-up advised"
+            "Rounded, well-circumscribed lung opacity < 3cm detected",
+            "No associated hilar lymphadenopathy currently visible",
+            "Margins appear relatively smooth/spiculated (check detail)",
+            "Compare with previous imaging to determine growth rate",
+            "Low-dose CT follow-up advised for detailed characterization"
         ],
         "Fracture": [
-            "Cortical discontinuity detected",
-            "Bone density irregularity observed",
-            "Clinical correlation required"
+            "Cortical discontinuity detected (likely rib/clavicle)",
+            "Callus formation suggests a subacute or healing phase",
+            "Bone density irregularity at the site of suspected trauma",
+            "Ensure no associated pneumothorax or pleural collection",
+            "Clinical correlation with localized pain required"
         ],
         "Consolidation": [
-            "Air-space consolidation noted",
-            "Air bronchograms may be present",
-            "Infectious vs. non-infectious etiology to exclude"
+            "Dense air-space consolidation with air bronchograms",
+            "Obscuration of pulmonary vessels within the opacity",
+            "Lobar distribution suggesting infectious etiology",
+            "No significant volume loss (differentiating from collapse)",
+            "Differential includes: Pneumonia, Hemorrhage, or Pulmonary Edema"
         ],
         "No Finding": [
-            "Clear lung fields bilaterally",
-            "Normal cardiac silhouette",
-            "No acute cardiopulmonary process"
+            "Clear lung fields bilaterally with no acute infiltrates",
+            "Normal cardiac silhouette size and configuration",
+            "Bony thorax and soft tissues appear unremarkable",
+            "Costophrenic angles are sharp; no pleural effusions",
+            "Trachea is midline; hila are normal in size and density"
         ]
     }
-    return findings_map.get(disease, [
-        f"{disease} pattern detected",
-        "Further clinical correlation advised",
-        "Specialist review recommended"
-    ])
+    # If the specific disease isn't in map, give a more professional fallback
+    if disease in findings_map:
+        return findings_map[disease]
+    
+    return [
+        f"Radiographic pattern consistent with {disease} identified",
+        "Abnormal density localized within the thoracic cavity",
+        "Distortion of normal bronchovascular markings present",
+        "Further clinical correlation with patient history required",
+        "Expert radiologist review recommended for definitive diagnosis"
+    ]
+
+
+def get_diagnosis(disease: str, confidence: float, is_normal: bool) -> str:
+    """Return a formal clinical diagnosis statement based on findings."""
+    if is_normal:
+        return "Unremarkable chest radiograph. No acute cardiopulmonary abnormalities or significant findings are detected in the lung fields or mediastinum at this time."
+    
+    # Prefix based on confidence
+    if confidence > 0.85:
+        prefix = "Definitive radiographic findings demonstrate"
+        suffix = "Clinical correlation is strongly advised to initiate appropriate management."
+    elif confidence > 0.65:
+        prefix = "Findings are highly suggestive of"
+        suffix = "Radiological follow-up or confirmatory clinical testing is recommended."
+    else:
+        prefix = "Subtle radiographic indicators suggest a possible"
+        suffix = "Finding is of low confidence; clinical correlation and expert review are essential to exclude variants."
+
+    # Specific clinical statements per disease (or a generic one)
+    statements = {
+        "Pneumonia": f"{prefix} acute infectious consolidation consistent with Pneumonia. {suffix}",
+        "Pleural Effusion": f"{prefix} pleural fluid accumulation (Effusion) in the thoracic cavity. {suffix}",
+        "Cardiomegaly": f"{prefix} global cardiac enlargement with a cardiothoracic ratio exceeding 1:2. {suffix}",
+        "Pneumothorax": f"{prefix} presence of intrapleural air consistent with Pneumothorax. URGENT review advised. {suffix}",
+        "Nodule": f"{prefix} a focal pulmonary lesion/nodule that requires serial monitoring via LDCT. {suffix}",
+        "Atelectasis": f"{prefix} localized alveolar collapse (Atelectasis). {suffix}",
+        "Edema": f"{prefix} pulmonary vascular congestion and interstitial edema. {suffix}",
+        "Fracture": f"{prefix} cortical disruption indicative of a skeletal fracture. {suffix}",
+        "Consolidation": f"{prefix} alveolar filling process/consolidation (Infectious vs. Inflammatory). {suffix}"
+    }
+
+    return statements.get(disease, f"{prefix} {disease} pattern. {suffix}")
 
 
 def get_recommendation(priority: str, disease: str) -> str:
     recs = {
-        "Critical": f"URGENT: Immediate radiologist review for {disease}. Do not delay clinical intervention.",
-        "High": f"Priority review required within 2 hours. {disease} pattern detected with high confidence.",
-        "Medium": f"Schedule radiologist review within 24 hours. {disease} findings noted.",
-        "Low": "No acute findings. Routine follow-up as clinically indicated."
+        "Critical": f"IMMEDIATE ACTION: Evidence of {disease} requires urgent clinical evaluation and potential lifesaving intervention. Alert the attending physician immediately.",
+        "High": f"PRIORITY ACTION: Radiographic signs of {disease} noted. Patient should be prioritized for radiologist validation and clinical treatment within 1-2 hours.",
+        "Medium": f"ROUTINE ACTION: Findings consistent with {disease} detected. Schedule specialist consultation and follow-up imaging as per standard protocol.",
+        "Low": "STANDARD MONITORING: No acute abnormalities. Patient may return to routine screening or follow-up as clinically indicated by their primary care provider."
     }
-    return recs.get(priority, "Clinical correlation recommended.")
+    return recs.get(priority, "Clinical correlation and expert radiologist review recommended.")
 
 
 # ─── API Routes ───────────────────────────────────────────────────────────────
@@ -267,7 +327,7 @@ def get_recommendation(priority: str, disease: str) -> str:
 @app.get("/")
 def root():
     return {
-        "service": "MedAI Analysis API",
+        "service": "Radio-Matic Analysis API",
         "model": "DenseNet-121 (CheXpert)",
         "status": "online" if MODEL_LOADED else "model_unavailable",
         "pathologies": len(PATHOLOGIES)
@@ -393,6 +453,7 @@ async def analyze_image(file: UploadFile = File(...)):
             "confidence_display": confidence_pct_display,  # calibrated for UI
             "priority": priority,
             "findings": get_findings(top_disease, top_conf_raw),
+            "diagnosis": get_diagnosis(top_disease, top_conf_raw, is_normal),
             "recommendation": get_recommendation(priority, top_disease),
             "all_pathologies": dict(sorted_probs[:8]),  # top 8 raw scores
             "heatmap": heatmap_b64,

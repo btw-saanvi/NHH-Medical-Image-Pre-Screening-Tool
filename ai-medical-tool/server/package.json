@@ -7,7 +7,6 @@
     "dev": "nodemon index.js",
     "seed": "node seed.js"
   },
-
   "keywords": [],
   "author": "",
   "license": "ISC",

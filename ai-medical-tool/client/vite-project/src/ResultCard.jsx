@@ -11,7 +11,7 @@ function ResultCard({ result, preview, onBack }) {
     const caseId = result.caseId || 'A???';
     const report = `
 ══════════════════════════════════════════════════════════
-          MedAI DIAGNOSTIC REPORT
+          Radio-Matic DIAGNOSTIC REPORT
 ══════════════════════════════════════════════════════════
   Case ID:         ${caseId}
   Date:            ${reportDate}
@@ -19,6 +19,9 @@ function ResultCard({ result, preview, onBack }) {
   Disease:         ${result.disease || 'N/A'}
   Confidence:      ${confidence}%
   Priority:        ${result.priority}
+──────────────────────────────────────────────────────────
+  DIAGNOSIS:
+  ${result.diagnosis || 'Clinical correlation required.'}
 ──────────────────────────────────────────────────────────
   FINDINGS:
   ${(result.findings || []).map((f, i) => `${i + 1}. ${f}`).join('\n  ')}
@@ -93,25 +96,50 @@ function ResultCard({ result, preview, onBack }) {
             </div>
           </div>
 
-          <div className="detail-card">
-            <h4 className="card-subtitle">Clinical Findings</h4>
+          {/* AI Diagnosis Section */}
+          <div className="detail-card diagnosis-card">
+            <div className="card-header-with-icon">
+              <h4 className="card-subtitle">Automated AI Clinical Diagnosis</h4>
+              <span className="badge-ai-model">V2.4 CLINICAL</span>
+            </div>
+            <div className="diagnosis-box">
+              <div className="diag-icon-accent">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                </svg>
+              </div>
+              <p className="diagnosis-text">{result.diagnosis || 'Processing formal diagnostic statement...'}</p>
+            </div>
+          </div>
+
+          <div className="detail-card findings-list-card">
+            <h4 className="card-subtitle">Key Radiographic Observations</h4>
             <ul className="findings-bullet-list">
               {(result.findings || []).map((f, i) => (
-                <li key={i}>{f}</li>
+                <li key={i}>
+                  <div className="bullet-indicator"></div>
+                  <span>{f}</span>
+                </li>
               ))}
             </ul>
           </div>
 
-          <div className="detail-card">
-            <h4 className="card-subtitle">Distribution by Pathology</h4>
+          <div className="detail-card differential-card">
+            <h4 className="card-subtitle">Differential Probability Analysis</h4>
+            <p className="differential-desc">Probability distribution across top weighted pathologies:</p>
             <div className="pathology-breakdown">
                {Object.entries(result.all_pathologies || {}).slice(0, 5).map(([name, prob]) => (
                  <div key={name} className="path-row">
-                    <span className="p-name">{name}</span>
-                    <div className="p-track">
-                       <div className="p-fill" style={{ width: `${prob * 100}%` }}></div>
+                    <div className="p-header">
+                      <span className="p-name">{name}</span>
+                      <span className="p-val">{Math.round(prob * 100)}%</span>
                     </div>
-                    <span className="p-val">{Math.round(prob * 100)}%</span>
+                    <div className="p-track">
+                       <div 
+                         className={`p-fill ${prob > 0.6 ? 'high' : prob > 0.3 ? 'medium' : 'low'}`} 
+                         style={{ width: `${prob * 100}%` }}
+                       ></div>
+                    </div>
                  </div>
                ))}
             </div>
@@ -119,8 +147,13 @@ function ResultCard({ result, preview, onBack }) {
 
           <div className={`recommendation-box ${result.priority?.toLowerCase()}`}>
              <div className="rec-header">
-                <span className="rec-prio-lbl">{result.priority} Priority</span>
-                <span className="rec-icon">ⓘ</span>
+                <div className="prio-tag">
+                  <div className={`prio-dot ${result.priority?.toLowerCase()}`}></div>
+                  <span className="rec-prio-lbl">{result.priority} CLINICAL PRIORITY</span>
+                </div>
+                <span className="rec-icon-shield">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </span>
              </div>
              <p className="rec-text">{result.recommendation}</p>
           </div>
