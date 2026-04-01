@@ -1,340 +1,134 @@
 import { useRef } from 'react';
 import './ResultCard.css';
 
-const PRIORITY_CONFIG = {
-  Critical: { color: 'critical', emoji: '🔴', label: 'Critical', desc: 'Requires immediate attention' },
-  High:     { color: 'high',     emoji: '🟠', label: 'High Priority', desc: 'Review within 2 hours' },
-  Medium:   { color: 'medium',   emoji: '🟡', label: 'Medium Priority', desc: 'Review within 24 hours' },
-  Low:      { color: 'low',      emoji: '🟢', label: 'Low Priority', desc: 'Routine review scheduled' },
-};
-
-function PathologyBar({ name, prob }) {
-  const pct = Math.round(prob * 100);
-  return (
-    <div className="pathology-row">
-      <span className="pathology-name">{name}</span>
-      <div className="pathology-bar-track">
-        <div
-          className={`pathology-bar-fill ${pct > 60 ? 'high-p' : pct > 30 ? 'med-p' : 'low-p'}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-      <span className="pathology-pct">{pct}%</span>
-    </div>
-  );
-}
-
-function ResultCard({ result, preview }) {
-  const cardRef = useRef(null);
-  const pConfig = PRIORITY_CONFIG[result.priority] || PRIORITY_CONFIG.Low;
+function ResultCard({ result, preview, onBack }) {
   const isAbnormal = result.prediction === 'Abnormal';
   const confidence = result.confidence ?? 88;
   const hasRealHeatmap = !!result.heatmap;
-  const hasPathologies = result.all_pathologies && Object.keys(result.all_pathologies).length > 0;
-
-  const findings = result.findings || (isAbnormal
-    ? ['Increased opacity in lower lobe', 'Possible consolidation pattern', 'Abnormal density distribution']
-    : ['Clear lung fields', 'Normal cardiac silhouette', 'No visible abnormalities']);
-
-  const recommendation = result.recommendation || (isAbnormal
-    ? 'Immediate specialist consultation recommended.'
-    : 'No immediate action required.');
-
-  // Image to show: real Grad-CAM heatmap > original preview
-  const displayImage = hasRealHeatmap ? result.heatmap : preview;
-
+  
   const exportReport = () => {
     const reportDate = new Date().toLocaleString();
     const caseId = result.caseId || 'A???';
-    
-    const pathologyLines = hasPathologies 
-      ? Object.entries(result.all_pathologies).slice(0, 8).map(([name, prob]) => 
-          `    ${name}: ${Math.round(prob * 100)}%`
-        ).join('\n')
-      : '    N/A (Mock mode)';
-
     const report = `
 ══════════════════════════════════════════════════════════
-          MedAI PRE-SCREENING REPORT
+          MedAI DIAGNOSTIC REPORT
 ══════════════════════════════════════════════════════════
-
   Case ID:         ${caseId}
   Date:            ${reportDate}
-  Model:           ${result.model || 'DenseNet-121 (CheXpert)'}
-  AI Service:      ${result.aiService === 'online' ? 'Real AI' : 'Mock (Development)'}
-  Processing Time: ${result.processingTime ? result.processingTime + 'ms' : 'N/A'}
-
-──────────────────────────────────────────────────────────
-  ANALYSIS RESULTS
-──────────────────────────────────────────────────────────
-
   Prediction:      ${result.prediction}
   Disease:         ${result.disease || 'N/A'}
   Confidence:      ${confidence}%
-  Priority:        ${result.priority} — ${pConfig.desc}
-
+  Priority:        ${result.priority}
 ──────────────────────────────────────────────────────────
-  AI FINDINGS
+  FINDINGS:
+  ${(result.findings || []).map((f, i) => `${i + 1}. ${f}`).join('\n  ')}
 ──────────────────────────────────────────────────────────
-
-${findings.map((f, i) => `  ${i + 1}. ${f}`).join('\n')}
-
-──────────────────────────────────────────────────────────
-  PATHOLOGY PROBABILITIES
-──────────────────────────────────────────────────────────
-
-${pathologyLines}
-
-──────────────────────────────────────────────────────────
-  CLINICAL RECOMMENDATION
-──────────────────────────────────────────────────────────
-
-  ${recommendation}
-
-══════════════════════════════════════════════════════════
-  ⚠  DISCLAIMER: This is an AI-assisted pre-screening.
-     Results must be verified by a licensed radiologist.
-     This tool is not a substitute for professional
-     medical diagnosis.
+  RECOMMENDATION:
+  ${result.recommendation || 'Clinical correlation required.'}
 ══════════════════════════════════════════════════════════
 `;
-
     const blob = new Blob([report], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `MedAI-Report-${caseId}-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.download = `Report-${caseId}.txt`;
     a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const notifyRadiologist = () => {
-    const subject = encodeURIComponent(`[MedAI Alert] ${result.priority} Priority - Case ${result.caseId || 'New'}`);
-    const body = encodeURIComponent(
-      `Priority: ${result.priority}\n` +
-      `Prediction: ${result.prediction}\n` +
-      `Disease: ${result.disease || 'N/A'}\n` +
-      `Confidence: ${confidence}%\n\n` +
-      `Findings:\n${findings.map(f => `- ${f}`).join('\n')}\n\n` +
-      `Recommendation: ${recommendation}\n\n` +
-      `— Generated by MedAI Pre-Screening System`
-    );
-    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
   };
 
   return (
-    <div className="result-card animate-fade-in" ref={cardRef}>
-      {/* Header */}
-      <div className="result-header">
-        <div className="result-header-left">
-          <div className={`result-status-dot ${pConfig.color}`}></div>
-          <div>
-            <h3 className="result-title">Analysis Complete</h3>
-            <span className="result-case-id">Case #{result.caseId || 'A???'}</span>
-          </div>
-        </div>
-        <div className="result-header-right">
-          {result.aiService === 'online' && (
-            <span className="ai-live-badge">
-              <span className="ai-live-dot"></span>Real AI
-            </span>
-          )}
-          {result.aiService === 'offline' && (
-            <span className="ai-mock-badge">
-              <span className="ai-mock-dot"></span>Mock
-            </span>
-          )}
-          <div className={`priority-badge ${pConfig.color}`}>
-            <span>{pConfig.emoji}</span>
-            <span>{pConfig.label}</span>
-          </div>
+    <div className="diagnostic-view animate-fade-in">
+      <div className="diag-top-bar">
+        <button className="back-link" onClick={onBack}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6"/></svg>
+          Back to Analysis
+        </button>
+        <div className="diag-actions">
+          <button className="btn-secondary sm" onClick={exportReport}>Download Report</button>
+          <button className="btn-primary sm">Notify Radiologist</button>
         </div>
       </div>
 
-      {/* Body */}
-      <div className="result-body">
-        {/* Image + Heatmap */}
-        <div className="result-image-section">
-          <div className="result-image-wrap">
-            {displayImage && (
-              <img
-                src={displayImage}
-                alt={hasRealHeatmap ? "Grad-CAM heatmap" : "Analyzed scan"}
-                className="result-image"
-              />
-            )}
-            {/* Simulated heatmap spots when no real Grad-CAM */}
-            {isAbnormal && !hasRealHeatmap && (
-              <div className="heatmap-overlay">
-                <div className="heatmap-spot spot-1"></div>
-                <div className="heatmap-spot spot-2"></div>
-                <div className="heatmap-spot spot-3"></div>
-              </div>
-            )}
-            <div className="result-image-label">
-              {hasRealHeatmap
-                ? '🔬 Grad-CAM — Regions of Interest'
-                : isAbnormal
-                  ? '⚠ Regions of Interest Highlighted'
-                  : '✓ No Abnormalities Detected'}
-            </div>
+      <div className="diag-grid">
+        {/* Left: Imaging */}
+        <div className="diag-imaging">
+          <div className="imaging-card">
+            <div className="img-lbl">Original Scan</div>
+            <img src={preview} alt="Original Scan" className="main-scan" />
           </div>
-
-          {/* Heatmap legend */}
-          <div className="heatmap-legend">
-            <span className="legend-title">
-              {hasRealHeatmap ? 'Real Grad-CAM Heatmap' : 'Grad-CAM Visualization'}
-            </span>
-            <div className="legend-scale">
-              <span className="legend-low">Low</span>
-              <div className="legend-gradient"></div>
-              <span className="legend-high">High</span>
-            </div>
+          <div className="imaging-card">
+             <div className="img-lbl">Diagnostic Heatmap (Grad-CAM)</div>
+             <div className="heatmap-container">
+               {hasRealHeatmap ? (
+                 <img src={result.heatmap} alt="AI Heatmap" className="main-scan" />
+               ) : (
+                 <div className="heatmap-fallback">
+                   <img src={preview} alt="Fallback" className="main-scan grayscale" />
+                   <div className="fallback-overlay">Generating visualization...</div>
+                 </div>
+               )}
+               <div className="heatmap-gradient-bar">
+                 <span>Low Probability</span>
+                 <div className="g-bar"></div>
+                 <span>High Probability</span>
+               </div>
+             </div>
           </div>
-
-          {/* Model info */}
-          {result.model && (
-            <div className="model-info">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
-              </svg>
-              <span>{result.model}</span>
-              {result.processingTime && <span className="proc-time">{result.processingTime}ms</span>}
-            </div>
-          )}
         </div>
 
-        {/* Metrics */}
-        <div className="result-metrics">
-          {/* Prediction + Disease */}
-          <div className={`metric-block prediction-block ${isAbnormal ? 'abnormal' : 'normal'}`}>
-            <div className="metric-icon">
-              {isAbnormal ? (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                  <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                </svg>
-              ) : (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
-              )}
+        {/* Right: Analysis Details */}
+        <div className="diag-details">
+          <div className="detail-card main">
+            <div className={`prediction-badge ${isAbnormal ? 'abnormal' : 'normal'}`}>
+               {isAbnormal ? '⚠ Abnormal Discovery' : '✓ Normal Findings'}
             </div>
-            <div className="metric-content">
-              <span className="metric-label">AI Prediction</span>
-              <span className="metric-value">{result.prediction}</span>
-              {result.disease && result.disease !== 'No Finding' && (
-                <span className="metric-sub">{result.disease}</span>
-              )}
+            <h2 className="disease-title">{result.disease || 'No Significant Finding'}</h2>
+            
+            <div className="confidence-gauge">
+               <svg viewBox="0 0 36 36" className="circular-chart">
+                 <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                 <path className="circle" strokeDasharray={`${confidence}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                 <text x="18" y="20.35" className="percentage">{confidence}%</text>
+               </svg>
+               <span className="gauge-lbl">AI Confidence Score</span>
             </div>
           </div>
 
-          {/* Confidence */}
-          <div className="metric-block">
-            <div className="metric-label-row">
-              <span className="metric-label">Confidence Score</span>
-              <span className="metric-value-sm">{confidence}%</span>
-            </div>
-            <div className="confidence-bar-track">
-              <div
-                className={`confidence-bar-fill ${confidence >= 85 ? 'high-conf' : confidence >= 70 ? 'med-conf' : 'low-conf'}`}
-                style={{ width: `${confidence}%` }}
-              ></div>
-            </div>
-            <div className="conf-desc">
-              {confidence >= 85 ? 'High confidence — reliable result'
-               : confidence >= 70 ? 'Moderate confidence — verify manually'
-               : 'Low confidence — manual review required'}
-            </div>
-          </div>
-
-          {/* AI Findings */}
-          <div className="findings-section">
-            <span className="findings-title">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              AI Findings
-            </span>
-            <ul className="findings-list">
-              {findings.map((f, i) => (
-                <li key={i} className="finding-item">
-                  <span className={`finding-dot ${isAbnormal ? 'abnormal' : 'normal'}`}></span>
-                  {f}
-                </li>
+          <div className="detail-card">
+            <h4 className="card-subtitle">Clinical Findings</h4>
+            <ul className="findings-bullet-list">
+              {(result.findings || []).map((f, i) => (
+                <li key={i}>{f}</li>
               ))}
             </ul>
           </div>
 
-          {/* Top Pathologies (only when real AI) */}
-          {hasPathologies && (
-            <div className="pathologies-section">
-              <span className="findings-title">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                </svg>
-                Pathology Probabilities
-              </span>
-              <div className="pathology-list">
-                {Object.entries(result.all_pathologies).slice(0, 5).map(([name, prob]) => (
-                  <PathologyBar key={name} name={name} prob={prob} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Recommendation */}
-          <div className={`recommendation-block ${pConfig.color}`}>
-            <div className="rec-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                <polyline points="22 4 12 14.01 9 11.01"/>
-              </svg>
-            </div>
-            <div className="rec-content">
-              <span className="rec-label">Clinical Recommendation</span>
-              <span className="rec-text">{recommendation}</span>
+          <div className="detail-card">
+            <h4 className="card-subtitle">Distribution by Pathology</h4>
+            <div className="pathology-breakdown">
+               {Object.entries(result.all_pathologies || {}).slice(0, 5).map(([name, prob]) => (
+                 <div key={name} className="path-row">
+                    <span className="p-name">{name}</span>
+                    <div className="p-track">
+                       <div className="p-fill" style={{ width: `${prob * 100}%` }}></div>
+                    </div>
+                    <span className="p-val">{Math.round(prob * 100)}%</span>
+                 </div>
+               ))}
             </div>
           </div>
 
-          <div className="priority-detail">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
-            <span>{pConfig.desc}</span>
+          <div className={`recommendation-box ${result.priority?.toLowerCase()}`}>
+             <div className="rec-header">
+                <span className="rec-prio-lbl">{result.priority} Priority</span>
+                <span className="rec-icon">ⓘ</span>
+             </div>
+             <p className="rec-text">{result.recommendation}</p>
           </div>
         </div>
       </div>
 
-      {/* Disclaimer */}
-      <div className="result-disclaimer">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
-        </svg>
-        <span>AI-assisted pre-screening only. Results must be verified by a licensed radiologist.</span>
-      </div>
-
-      {/* Actions */}
-      <div className="result-actions">
-        <button className="action-btn secondary" onClick={exportReport}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          Export Report
-        </button>
-        <button className="action-btn secondary" onClick={notifyRadiologist}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
-          </svg>
-          Notify Radiologist
-        </button>
-        <button className={`action-btn primary ${pConfig.color}-btn`}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-          </svg>
-          Added to Dashboard
-        </button>
+      <div className="clinical-disclaimer">
+         <p><strong>Clinical Disclaimer:</strong> This AI-generated insight is a preliminary pre-screening tool designed to assist in triage. It must not be interpreted as a final medical diagnosis. All findings and heatmaps must be validated by a licensed radiologist or clinical specialist prior to any medical intervention.</p>
       </div>
     </div>
   );

@@ -35,102 +35,74 @@ async function isAIServiceOnline() {
   }
 }
 
-// ─── Mock fallback ───────────────────────────────────────────────────────────
-const DISEASES = ["Pneumonia","Pleural Effusion","Cardiomegaly","Atelectasis","Nodule","No Finding","No Finding","No Finding"];
-const FINDINGS_MAP = {
-  "Pneumonia": ["Increased opacity in lower lobe","Possible consolidation pattern","Air-space disease noted"],
-  "Pleural Effusion": ["Blunting of costophrenic angle","Homogeneous opacity at base","Possible mediastinal shift"],
-  "Cardiomegaly": ["Cardiothoracic ratio > 0.5","Enlarged cardiac silhouette","Pulmonary vascular congestion"],
-  "Atelectasis": ["Linear opacities noted","Volume loss in affected lobe","Displacement of fissures"],
-  "Nodule": ["Rounded opacity < 3cm detected","Further characterization recommended","CT follow-up advised"],
-  "No Finding": ["Clear lung fields bilaterally","Normal cardiac silhouette","No acute cardiopulmonary process"],
-};
-const RECS = {
-  Critical: "URGENT: Immediate radiologist review required. Do not delay.",
-  High: "Priority review within 2 hours recommended.",
-  Medium: "Schedule radiologist review within 24 hours.",
-  Low: "No immediate action required. Routine follow-up advised.",
-};
-
-function mockAnalysis() {
-  const disease = DISEASES[Math.floor(Math.random() * DISEASES.length)];
-  const isNormal = disease === "No Finding";
-  const confidence = isNormal
-    ? Math.floor(Math.random() * 10 + 88)
-    : Math.floor(Math.random() * 18 + 78);
-  const r = Math.random();
-  const priority = isNormal
-    ? "Low"
-    : r > 0.7 ? "Critical" : r > 0.45 ? "High" : "Medium";
-
-  return {
-    prediction: isNormal ? "Normal" : "Abnormal",
-    disease,
-    confidence: confidence / 100,
-    priority,
-    findings: FINDINGS_MAP[disease] || FINDINGS_MAP["No Finding"],
-    recommendation: RECS[priority],
-    all_pathologies: {},
-    heatmap: null,
-    model: "mock (AI service offline)",
-  };
-}
-
 // ─── Main upload route ───────────────────────────────────────────────────────
 app.post("/upload", upload.single("image"), async (req, res) => {
   caseCounter++;
   const caseId = `A${caseCounter}`;
   const uploadedFilePath = req.file?.path;
-  let result;
+
+  if (!uploadedFilePath) {
+    return res.status(400).json({ error: "No image file uploaded" });
+  }
 
   const aiOnline = await isAIServiceOnline();
 
-  if (aiOnline && uploadedFilePath) {
-    try {
-      // Forward to Python AI service
-      const formData = new FormData();
-      formData.append("file", fs.createReadStream(uploadedFilePath), {
-        filename: req.file.originalname,
-        contentType: req.file.mimetype,
-      });
-
-      const aiResponse = await axios.post(`${AI_SERVICE_URL}/analyze`, formData, {
-        headers: formData.getHeaders(),
-        timeout: 60000,
-      });
-
-      result = aiResponse.data;
-      console.log(`[${caseId}] AI Analysis: ${result.disease} (${(result.confidence * 100).toFixed(1)}%) — ${result.priority}`);
-    } catch (err) {
-      console.warn(`[${caseId}] AI service error, using mock: ${err.message}`);
-      result = mockAnalysis();
-    }
-  } else {
-    if (!aiOnline) console.warn(`[${caseId}] AI service offline — using mock`);
-    result = mockAnalysis();
+  if (!aiOnline) {
+    console.error(`[${caseId}] AI Service Offline — Failing request`);
+    return res.status(503).json({ 
+      error: "AI Analysis Service is currently offline. Please start the AI model server.",
+      caseId 
+    });
   }
 
-  // Format confidence as 0-100 integer for frontend
-  const confidencePct = result.confidence <= 1
-    ? Math.round(result.confidence * 100)
-    : Math.round(result.confidence);
+  try {
+    // Forward to Python AI service
+    const formData = new FormData();
+    formData.append("file", fs.createReadStream(uploadedFilePath), {
+      filename: req.file.originalname,
+      contentType: req.file.mimetype,
+    });
 
-  res.json({
-    caseId,
-    prediction: result.prediction,
-    disease: result.disease,
-    confidence: confidencePct,
-    priority: result.priority,
-    findings: result.findings,
-    recommendation: result.recommendation,
-    all_pathologies: result.all_pathologies || {},
-    heatmap: result.heatmap || null,
-    imageFile: req.file ? req.file.filename : null,
-    processingTime: result.processing_time_ms || null,
-    model: result.model || "DenseNet-121",
-    aiService: aiOnline ? "online" : "offline",
-    timestamp: new Date().toISOString(),
-  });
+    console.log(`[${caseId}] Forwarding to AI service...`);
+    const aiResponse = await axios.post(`${AI_SERVICE_URL}/analyze`, formData, {
+      headers: formData.getHeaders(),
+      timeout: 120000, // Increased timeout for real model inference
+    });
+
+    const result = aiResponse.data;
+    
+    // Format confidence as 0-100 integer for frontend
+    const confidencePct = result.confidence <= 1
+      ? Math.round(result.confidence * 100)
+      : Math.round(result.confidence);
+
+    console.log(`[${caseId}] AI Analysis Success: ${result.disease} (${confidencePct}%)`);
+
+    res.json({
+      caseId,
+      prediction: result.prediction,
+      disease: result.disease,
+      confidence: confidencePct,
+      priority: result.priority,
+      findings: result.findings,
+      recommendation: result.recommendation,
+      all_pathologies: result.all_pathologies || {},
+      heatmap: result.heatmap || null,
+      imageFile: req.file.filename,
+      processingTime: result.processing_time_ms || null,
+      model: result.model || "DenseNet-121",
+      aiService: "online",
+      timestamp: new Date().toISOString(),
+    });
+
+  } catch (err) {
+    console.error(`[${caseId}] AI service error: ${err.message}`);
+    res.status(502).json({ 
+      error: "AI model encountered an error during inference. Please check ai-model logs.",
+      details: err.message,
+      caseId
+    });
+  }
 });
 
 // ─── Health check ────────────────────────────────────────────────────────────
@@ -146,10 +118,12 @@ app.get("/health", async (req, res) => {
 });
 
 app.get("/cases", (req, res) => {
+  // In a real app this would query a database
   res.json({ total: 247, critical: 8, high: 23, medium: 41, low: 175 });
 });
 
 app.listen(5000, () => {
   console.log("🏥 MedAI Backend running on http://localhost:5000");
-  console.log(`📡 Proxying AI requests to: ${AI_SERVICE_URL}`);
+  console.log(`📡 STRICT MODE: Proxying all requests to: ${AI_SERVICE_URL}`);
+  console.log("⚠️ MOCK FALLBACKS HAVE BEEN REMOVED.");
 });

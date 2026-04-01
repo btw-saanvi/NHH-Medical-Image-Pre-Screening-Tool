@@ -47,7 +47,12 @@ app.add_middleware(
 logger.info("Loading TorchXRayVision model (DenseNet-121, CheXpert-trained)...")
 
 try:
+    # Use GPU if available
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    logger.info(f"Using device: {device}")
+    
     model = xrv.models.DenseNet(weights="densenet121-res224-chex")
+    model = model.to(device)
     model.eval()
     logger.info("✅ Model loaded: DenseNet-121 (CheXpert)")
     MODEL_LOADED = True
@@ -226,6 +231,8 @@ def root():
 
 @app.get("/health")
 def health():
+    if not MODEL_LOADED:
+        raise HTTPException(status_code=503, detail="Model not loaded. Service unavailable.")
     return {
         "status": "online",
         "model_loaded": MODEL_LOADED,
@@ -239,6 +246,11 @@ def health():
 async def analyze_image(file: UploadFile = File(...)):
     start_time = time.time()
 
+    # Model inference validation
+    if not MODEL_LOADED or model is None:
+        logger.error("❌ STRICT MODE: Model not loaded. Rejecting request.")
+        raise HTTPException(status_code=503, detail="AI Model is not loaded. Please restart the service.")
+
     # Validate file type
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
@@ -250,39 +262,21 @@ async def analyze_image(file: UploadFile = File(...)):
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid image file")
 
-    # Model inference
-    if not MODEL_LOADED or model is None:
-        # Fallback mock for development
-        logger.warning("Model not available – using mock response")
-        import random
-        diseases = ["Pneumonia", "No Finding", "Cardiomegaly", "Atelectasis", "Pleural Effusion"]
-        disease = random.choice(diseases)
-        confidence = round(random.uniform(0.72, 0.96), 3)
-        priority = assign_priority(disease, confidence)
-        return JSONResponse({
-            "prediction": "Normal" if disease == "No Finding" else "Abnormal",
-            "disease": disease,
-            "confidence": confidence,
-            "priority": priority,
-            "findings": get_findings(disease, confidence),
-            "recommendation": get_recommendation(priority, disease),
-            "all_pathologies": {},
-            "heatmap": None,
-            "processing_time_ms": round((time.time() - start_time) * 1000),
-            "model": "mock (model not loaded)"
-        })
-
     try:
         # Preprocess
         img_np = preprocess_image(pil_image)
         img_tensor = torch.from_numpy(img_np).unsqueeze(0).unsqueeze(0)  # [1,1,224,224]
+        
+        # Move to GPU if available
+        device = next(model.parameters()).device
+        img_tensor = img_tensor.to(device)
 
         # Inference
         with torch.no_grad():
             preds = model(img_tensor)
 
         # Process predictions
-        pred_np = preds.squeeze().numpy()
+        pred_np = preds.squeeze().cpu().numpy()
         # Build disease probability map
         disease_probs = {}
         if hasattr(model, 'pathologies'):
@@ -317,6 +311,7 @@ async def analyze_image(file: UploadFile = File(...)):
             # Find index for this disease in model.pathologies
             try:
                 target_idx = list(model.pathologies).index(top_disease)
+                # Grad-CAM needs gradients
                 img_tensor_grad = img_tensor.clone().requires_grad_(True)
                 heatmap_b64 = get_gradcam_heatmap(img_tensor_grad, target_idx)
             except (ValueError, Exception) as e:
