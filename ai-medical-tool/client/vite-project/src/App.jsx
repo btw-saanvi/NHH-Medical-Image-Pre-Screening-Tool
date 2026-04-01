@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import axios from "axios";
 import UploadZone from "./UploadZone";
 import ResultCard from "./ResultCard";
 import Dashboard from "./Dashboard";
+import { getHealth, getCases, uploadScan } from "./api";
 import "./App.css";
-
-const BACKEND_URL = "http://localhost:5000";
 
 const NAV_ITEMS = [
   {
@@ -212,31 +210,61 @@ function LandingPage({ onStart }) {
   );
 }
 
-function HistoryPage({ cases, onViewCase }) {
+function HistoryPage({ onViewCase }) {
   const [search, setSearch] = useState('');
   const [filterPriority, setFilterPriority] = useState('All');
+  const [cases, setCases] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
 
-  const filtered = cases.filter(h => {
-    const matchSearch = !search || h.caseId?.toLowerCase().includes(search.toLowerCase()) || h.disease?.toLowerCase().includes(search.toLowerCase());
-    const matchPriority = filterPriority === 'All' || h.priority === filterPriority;
-    return matchSearch && matchPriority;
-  });
+  const fetchHistory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await getCases({
+        page,
+        limit: 24,
+        priority: filterPriority !== 'All' ? filterPriority : undefined,
+        search: search || undefined,
+        sort: '-createdAt',
+      });
+      setCases(res.cases || []);
+      setPagination(res.pagination || { total: 0, totalPages: 1 });
+    } catch (err) {
+      console.error('History fetch error:', err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [page, filterPriority, search]);
+
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  const exportCSV = () => {
+    const header = 'Case ID,Patient ID,Disease,Prediction,Confidence,Priority,Scan Type,Date\n';
+    const rows = cases.map(h =>
+      `${h.caseId},${h.patientId || ''},"${h.disease}",${h.prediction},${h.confidence}%,${h.priority},${h.scanType || 'X-Ray'},${h.timestamp ? new Date(h.timestamp).toLocaleDateString() : ''}`
+    ).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'medai-history.csv'; a.click();
+  };
 
   return (
     <div className="history-page animate-fade-in">
       <div className="page-header">
         <div>
           <h2 className="page-title">Digital Archive</h2>
-          <p className="page-desc">Historical data and previous clinical findings</p>
+          <p className="page-desc">Historical data pulled from MongoDB — {pagination.total} total records</p>
         </div>
+        <button className="btn-secondary sm" onClick={exportCSV}>⬇ Export CSV</button>
       </div>
 
       <div className="history-search-row">
         <div className="search-input-wrap">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          <input type="text" placeholder="Search archive..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input type="text" placeholder="Search case ID, disease, patient…" value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
         </div>
-        <select className="filter-select" value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+        <select className="filter-select" value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setPage(1); }}>
           <option value="All">All Priorities</option>
           <option value="Critical">Critical</option>
           <option value="High">High</option>
@@ -245,24 +273,47 @@ function HistoryPage({ cases, onViewCase }) {
         </select>
       </div>
 
-      <div className="archive-grid">
-        {filtered.map(h => (
-          <div key={h.caseId} className="archive-card" onClick={() => onViewCase?.(h)}>
-             <div className="arch-header">
-               <span className="arch-id">{h.caseId}</span>
-               <span className={`priority-dot ${h.priority?.toLowerCase()}`}></span>
-             </div>
-             <div className="arch-body">
-               <div className="arch-disease">{h.disease || 'No Finding'}</div>
-               <div className="arch-meta">{h.prediction} • {h.confidence}% conf.</div>
-             </div>
-             <div className="arch-footer">
-               <span>{h.timestamp ? new Date(h.timestamp).toLocaleDateString() : 'Today'}</span>
-               <button className="text-btn">View Result</button>
-             </div>
+      {loading ? (
+        <div className="table-loading"><div className="loading-spinner-circle sm"></div><span>Loading from database…</span></div>
+      ) : (
+        <>
+          <div className="archive-grid">
+            {cases.map(h => (
+              <div key={h.caseId} className="archive-card" onClick={() => onViewCase?.(h)}>
+                 <div className="arch-header">
+                   <span className="arch-id">{h.caseId}</span>
+                   <span className={`priority-dot ${h.priority?.toLowerCase()}`}></span>
+                 </div>
+                 <div className="arch-body">
+                   <div className="arch-disease">{h.disease || 'No Finding'}</div>
+                   <div className="arch-meta">{h.prediction} • {h.confidence}% conf.</div>
+                   {(h.patientName || h.patientId) && (
+                     <div className="arch-meta">
+                       👤 {h.patientName || h.patientId}
+                       {h.patientAge ? ` · ${h.patientAge}y` : ''}
+                     </div>
+                   )}
+                   {h.scanType && <div className="arch-meta">{h.scanType}</div>}
+                   {h.source === 'nih_seed' && <div className="arch-meta" style={{color:'#64748b'}}>NIH ChestX-ray14 record</div>}
+                 </div>
+                 <div className="arch-footer">
+                   <span>{h.timestamp ? new Date(h.timestamp).toLocaleDateString() : 'Today'}</span>
+                   <button className="text-btn">View Result</button>
+                 </div>
+              </div>
+            ))}
+            {cases.length === 0 && <div className="empty-archive">No records found.</div>}
           </div>
-        ))}
-      </div>
+
+          {pagination.totalPages > 1 && (
+            <div className="pagination-row">
+              <button className="btn-secondary sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
+              <span className="page-info">Page {page} / {pagination.totalPages}</span>
+              <button className="btn-secondary sm" disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
@@ -342,19 +393,20 @@ function App() {
 
   const checkHealth = useCallback(async () => {
     try {
-      const res = await axios.get(`${BACKEND_URL}/health`, { timeout: 3000 });
+      const data = await getHealth();
       setAiHealth({
         backend: true,
-        ai: res.data.aiService || 'offline',
-        model: res.data.model || 'DenseNet-121',
-        uptime: res.data.uptime || 0,
+        ai: data.aiService || 'offline',
+        model: data.model || 'DenseNet-121',
+        uptime: data.uptime || 0,
+        database: data.database || 'disconnected',
       });
       if (firstConnectRef.current) {
-        addToast("System Ready", "MedAI analysis server is online.");
+        addToast("System Ready", `MedAI server online · DB: ${data.database}`);
         firstConnectRef.current = false;
       }
     } catch {
-      setAiHealth({ backend: false, ai: 'offline', model: '', uptime: 0 });
+      setAiHealth({ backend: false, ai: 'offline', model: '', uptime: 0, database: 'disconnected' });
     }
   }, [addToast]);
 
@@ -387,22 +439,21 @@ function App() {
     }, 1200);
 
     try {
-      const formData = new FormData();
-      formData.append("image", file);
-      const res = await axios.post(`${BACKEND_URL}/upload`, formData, { timeout: 90000 });
+      const newResult = await uploadScan(file, patientInfo);
+
 
       clearInterval(loadingTimerRef.current);
       setLoadingStep(LOADING_STEPS.length - 1);
       await new Promise(r => setTimeout(r, 800));
 
-      const newResult = res.data;
       setResult(newResult);
-      setCases(prev => [{ ...newResult, isNew: true, timestamp: new Date().toISOString() }, ...prev]);
-      addToast("Analysis Complete", `Findings generated for Case #${newResult.caseId}`, "success");
+      // Still track live cases in memory for the dashboard real-time merge
+      setCases(prev => [{ ...newResult, isNew: true, timestamp: newResult.timestamp || new Date().toISOString() }, ...prev]);
+      addToast("Analysis Complete", `Saved to DB — Case #${newResult.caseId}`, "success");
       checkHealth();
     } catch (err) {
       clearInterval(loadingTimerRef.current);
-      let msg = err.response?.data?.error || "Analysis failed. Connecting to AI service failed.";
+      const msg = err.response?.data?.error || err.message || "Analysis failed. Check AI service.";
       setError(msg);
       addToast("Error", msg, "error");
     } finally {
@@ -448,13 +499,6 @@ function App() {
              <span>Portal</span>
              <span className="sep">/</span>
              <span className="active">{NAV_ITEMS.find(n => n.id === page)?.label}</span>
-           </div>
-           <div className="header-user">
-             <div className="user-info">
-               <span className="user-name">Dr. J. Smith</span>
-               <span className="user-role">Radiologist</span>
-             </div>
-             <div className="user-avatar-circle">JS</div>
            </div>
         </header>
 
@@ -507,7 +551,7 @@ function App() {
           )}
 
           {page === "dashboard" && <Dashboard newResult={result} preview={preview} liveCases={cases} />}
-          {page === "history" && <HistoryPage cases={cases} onViewCase={handleViewCase} />}
+          {page === "history" && <HistoryPage onViewCase={handleViewCase} />}
           {page === "settings" && <SettingsPage aiHealth={aiHealth} onRefreshHealth={checkHealth} />}
         </main>
       </div>

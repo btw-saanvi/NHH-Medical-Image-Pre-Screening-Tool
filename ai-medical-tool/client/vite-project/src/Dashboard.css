@@ -4,19 +4,19 @@
 .dashboard-v2 {
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 18px;
 }
 
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  gap: 14px;
 }
 
 .summary-card {
   background: #ffffff;
-  padding: 24px;
-  border-radius: 16px;
+  padding: 18px 20px;
+  border-radius: 14px;
   border: 1.5px solid var(--border);
   box-shadow: var(--shadow-sm);
   transition: var(--transition);
@@ -67,8 +67,8 @@
 /* Main Grid Layout */
 .dashboard-main-grid {
   display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 32px;
+  grid-template-columns: 1fr 280px;
+  gap: 18px;
   align-items: start;
 }
 
@@ -83,7 +83,7 @@
 }
 
 .section-header {
-  padding: 24px;
+  padding: 16px 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -91,7 +91,7 @@
 }
 
 .section-header h3 {
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
 }
@@ -141,8 +141,8 @@
 
 .queue-table th {
   background: #f8fafc;
-  padding: 12px 24px;
-  font-size: 12px;
+  padding: 10px 16px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -150,9 +150,9 @@
 }
 
 .queue-table td {
-  padding: 16px 24px;
+  padding: 12px 16px;
   border-bottom: 1px solid var(--border);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
 }
 
@@ -251,15 +251,15 @@
 
 .sidebar-card {
   background: #ffffff;
-  border-radius: 20px;
+  border-radius: 16px;
   border: 1px solid var(--border);
-  padding: 24px;
+  padding: 18px 20px;
 }
 
 .sidebar-card h4 {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
 .dist-rows {
@@ -327,3 +327,128 @@
   font-weight: 700;
   font-size: 13px;
 }
+
+/* ── Queue filters ─────────────────────────────────────────────── */
+.queue-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  background: #fafbfc;
+  flex-wrap: wrap;
+}
+
+.search-input-wrap.sm {
+  flex: 1;
+  min-width: 160px;
+}
+
+.filter-select.sm {
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
+/* ── Pagination ────────────────────────────────────────────────── */
+.pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+}
+
+.page-info {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+/* ── Source tags ───────────────────────────────────────────────── */
+.source-tag {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 6px;
+  vertical-align: middle;
+  background: #e0f2fe;
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.source-tag.new {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+/* ── Patient cell ──────────────────────────────────────────────── */
+.patient-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ── Scan type cell ────────────────────────────────────────────── */
+.scan-type-cell {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.date-cell {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Table loading state ───────────────────────────────────────── */
+.table-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.loading-spinner-circle.sm {
+  width: 24px;
+  height: 24px;
+  border-width: 3px;
+}
+
+/* ── Empty row ─────────────────────────────────────────────────── */
+.empty-row,
+.empty-archive {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 48px 24px;
+  font-size: 14px;
+}
+
+/* ── NIH badge on sidebar card header ─────────────────────────── */
+.badge-nih {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: #e0f2fe;
+  color: #0369a1;
+  margin-left: 8px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+

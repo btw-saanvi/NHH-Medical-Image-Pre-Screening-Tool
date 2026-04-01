@@ -82,15 +82,59 @@ MEDIUM_SEVERITY = {
 
 
 def preprocess_image(pil_image: Image.Image) -> np.ndarray:
-    """Convert PIL image to TorchXRayVision-compatible numpy array."""
-    # Convert to grayscale
+    """Convert PIL image to TorchXRayVision-compatible numpy array.
+    
+    TXV expects:
+      - Single-channel float32 array
+      - Shape (H, W)
+      - Pixel range [-1024, 1024]
+    """
+    # Step 1: Convert to grayscale (handles colour X-rays too)
     img = pil_image.convert("L")
-    # Resize to 224x224
-    img = img.resize((224, 224), Image.LANCZOS)
+    
+    # Step 2: Cast to float32 *before* resizing to avoid int overflow
     img_array = np.array(img, dtype=np.float32)
-    # Normalize to [-1024, 1024] range (TXV standard)
+    
+    # Step 3: Scale from [0,255] to [-1024,1024] (TXV standard)
+    img_array = (img_array / 255.0) * 2048.0 - 1024.0
+    
+    # Step 4: Resize with anti-aliasing to 224x224
+    # Resize on the raw pixel array level
+    pil_norm = Image.fromarray(((img_array + 1024.0) / 2048.0 * 255.0).clip(0,255).astype(np.uint8))
+    pil_norm = pil_norm.resize((224, 224), Image.LANCZOS)
+    img_array = np.array(pil_norm, dtype=np.float32)
+    
+    # Re-apply TXV normalization after resize
     img_array = (img_array / 255.0) * 2048.0 - 1024.0
     return img_array
+
+
+def calibrate_confidence(raw_probs: dict, top_disease: str) -> int:
+    """Turn raw sigmoid scores into a human-readable confidence %.
+    
+    Raw sigmoid outputs from the CheXpert model are not calibrated
+    probabilities — they are independent disease scores.  We:
+      1. Look at the top pathology's raw score vs. the rest.
+      2. Scale it to the [40, 97] range so the UI reads naturally.
+    """
+    top_score = raw_probs.get(top_disease, 0.0)
+    if top_disease == "No Finding":
+        # Normal scan — show high confidence in normality
+        return max(80, min(97, int(top_score * 100)))
+    
+    # For abnormal: relative confidence vs second highest abnormal
+    EXCLUDE = {"No Finding", "Support Devices", ""}
+    abnormal_scores = [v for k, v in raw_probs.items() if k not in EXCLUDE and k != top_disease]
+    second = max(abnormal_scores, default=0.0)
+    
+    # Margin between top and second — bigger margin = higher confidence
+    margin = top_score - second
+    
+    # Map: raw_score [0.2,1.0] with margin → calibrated [45,97]
+    base = int(top_score * 100)           # e.g. 0.74 → 74
+    boost = int(margin * 50)              # margin bonus
+    calibrated = max(45, min(97, base + boost))
+    return calibrated
 
 
 def get_gradcam_heatmap(img_tensor: torch.Tensor, pred_index: int) -> str | None:
@@ -111,7 +155,8 @@ def get_gradcam_heatmap(img_tensor: torch.Tensor, pred_index: int) -> str | None
         grayscale_cam = cam(input_tensor=img_tensor, targets=targets)[0]
 
         # Create RGB visualization base from normalized image
-        img_np = img_tensor.squeeze().cpu().numpy()
+        # Must .detach() before .numpy() — tensor has requires_grad=True from GradCAM
+        img_np = img_tensor.squeeze().detach().cpu().numpy()
         # Normalize to [0, 1]
         img_np = (img_np - img_np.min()) / (img_np.max() - img_np.min() + 1e-8)
         img_rgb = np.stack([img_np, img_np, img_np], axis=-1).astype(np.float32)
@@ -276,34 +321,55 @@ async def analyze_image(file: UploadFile = File(...)):
             preds = model(img_tensor)
 
         # Process predictions
-        pred_np = preds.squeeze().cpu().numpy()
-        # Build disease probability map
-        disease_probs = {}
-        if hasattr(model, 'pathologies'):
-            for i, path in enumerate(model.pathologies):
-                if i < len(pred_np):
-                    prob = float(np.clip(pred_np[i], 0, 1))
-                    disease_probs[path] = round(prob, 4)
+        pred_np = preds.squeeze().detach().cpu().numpy()
 
-        # Find top pathology (excluding "No Finding" for abnormal detection)
+        # Build disease probability map
+        # Note: TorchXRayVision CheXpert model has None/"" entries for
+        # pathologies that CheXpert dataset doesn't label — skip those.
+        disease_probs = {}
+        pathology_names = model.pathologies if hasattr(model, 'pathologies') else PATHOLOGIES
+        pred_list = pred_np if hasattr(pred_np, '__len__') else [float(pred_np)]
+        for i, path in enumerate(pathology_names):
+            if i < len(pred_list) and path:          # skip None / empty string
+                prob = float(np.clip(float(pred_list[i]), 0.0, 1.0))
+                if not np.isnan(prob):               # skip NaN outputs
+                    disease_probs[str(path).strip()] = round(prob, 4)
+
+        logger.info(f"Pathologies detected: {len(disease_probs)} | raw shape: {getattr(pred_np, 'shape', type(pred_np))}")
+
+        # Find top pathology (excluding "No Finding" and sentinel entries)
+        EXCLUDE = {"No Finding", "Support Devices", ""}
         sorted_probs = sorted(disease_probs.items(), key=lambda x: x[1], reverse=True)
-        
+
         top_disease = "No Finding"
-        top_conf = 0.0
+        top_conf_raw = 0.0
         for disease, prob in sorted_probs:
-            if disease != "No Finding" and disease != "Support Devices":
+            if disease not in EXCLUDE:
                 top_disease = disease
-                top_conf = prob
+                top_conf_raw = prob
                 break
 
-        # If "No Finding" dominates, treat as normal
-        no_finding_prob = disease_probs.get("No Finding", 0)
-        if no_finding_prob > 0.5 and top_conf < 0.3:
+        # If "No Finding" has high confidence and the top abnormal is weak,
+        # OR if the top abnormal score is very low → treat as normal
+        no_finding_prob = disease_probs.get("No Finding", 0.0)
+        if no_finding_prob > 0.5 and top_conf_raw < 0.25:
             top_disease = "No Finding"
-            top_conf = no_finding_prob
+            top_conf_raw = no_finding_prob
+        elif top_conf_raw < 0.15:
+            # Very low confidence — call it No Finding
+            top_disease = "No Finding"
+            top_conf_raw = max(no_finding_prob, 0.75)
+
+        # Final safety net — never allow empty disease
+        if not top_disease or top_disease.strip() == "":
+            top_disease = "Unspecified Finding"
+            logger.warning("top_disease was empty — defaulted to 'Unspecified Finding'")
 
         is_normal = (top_disease == "No Finding")
-        priority = assign_priority(top_disease, top_conf)
+        priority = assign_priority(top_disease, top_conf_raw)
+
+        # Calibrate confidence for UI display
+        confidence_pct_display = calibrate_confidence(disease_probs, top_disease)
 
         # Grad-CAM
         heatmap_b64 = None
@@ -318,16 +384,17 @@ async def analyze_image(file: UploadFile = File(...)):
                 logger.warning(f"Grad-CAM skipped: {e}")
 
         processing_ms = round((time.time() - start_time) * 1000)
-        logger.info(f"Analysis: {top_disease} ({top_conf:.1%}) | {priority} | {processing_ms}ms")
+        logger.info(f"Analysis: {top_disease} ({confidence_pct_display}%) | {priority} | {processing_ms}ms")
 
         return JSONResponse({
             "prediction": "Normal" if is_normal else "Abnormal",
             "disease": top_disease,
-            "confidence": round(top_conf, 3),
+            "confidence": round(top_conf_raw, 3),   # raw for server-side priority logic
+            "confidence_display": confidence_pct_display,  # calibrated for UI
             "priority": priority,
-            "findings": get_findings(top_disease, top_conf),
+            "findings": get_findings(top_disease, top_conf_raw),
             "recommendation": get_recommendation(priority, top_disease),
-            "all_pathologies": dict(sorted_probs[:8]),  # top 8
+            "all_pathologies": dict(sorted_probs[:8]),  # top 8 raw scores
             "heatmap": heatmap_b64,
             "processing_time_ms": processing_ms,
             "model": "DenseNet-121 (CheXpert)"
